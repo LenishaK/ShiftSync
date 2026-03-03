@@ -17,10 +17,10 @@ namespace ShiftSync
         private const int W_OVERTIME_DAY = 4;
 
         public ScheduleResult GenerateSchedule(
-            List<SHIFT> shifts,
+            List<Shift> shifts,
             List<TaskItem> tasks,
             List<AvailabilityWindow> availability,
-            UserPrefrences prefs,
+            UserPreference prefs,
             ScheduleLimits limits)
         {
             var result = new ScheduleResult();
@@ -30,7 +30,7 @@ namespace ShiftSync
             schedule.AddRange(shifts);
             schedule = schedule.OrderBy(b => b.Start).ToList();
 
-            //sort task: by highest priority, then earliest dealine (if any) 
+            //sort task: by highest priority, then earliest dealEine (if any) 
             var sortedTasks = tasks
                 .OrderByDescending(t => (int)t.Priority)
                 .ThenBy(t => t.Deadline ?? DateTime.MaxValue)
@@ -273,7 +273,7 @@ namespace ShiftSync
 
     internal static class Scoring
     {
-        public static int Score(List<TimeBlock> schedule, UserPreferences prefs, ScheduleLimits limits)
+        public static int Score(List<TimeBlock> schedule, UserPreference prefs, ScheduleLimits limits)
         {
             int score = 0;
 
@@ -286,7 +286,7 @@ namespace ShiftSync
             return score;
         }
 
-        private static int PreferredTimesScore(List<TimeBlock> schedule, UserPreferences prefs)
+        private static int PreferredTimesScore(List<TimeBlock> schedule, UserPreference prefs)
         {
             if (prefs.PreferredWindows.Count == 0) return 0;
 
@@ -303,7 +303,7 @@ namespace ShiftSync
             return points;
         }
 
-        private static int FreeTimePreferenceScore(List<TimeBlock> schedule, UserPreferences prefs)
+        private static int FreeTimePreferenceScore(List<TimeBlock> schedule, UserPreference prefs)
         {
             int points = 0;
 
@@ -375,7 +375,4 @@ namespace ShiftSync
             return penalty;
         }
     }
-}
-            }
-        }
 }
