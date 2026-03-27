@@ -1,5 +1,5 @@
 using ShiftSync.Domain.Enums;
-using system;
+using System;
 
 namespace ShiftSync.Domain.Entities
 {

@@ -1,4 +1,4 @@
-using systems;
+using System;
 
 namespace ShiftSync.Domain.Entities
 {

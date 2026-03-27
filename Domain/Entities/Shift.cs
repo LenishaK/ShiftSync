@@ -1,5 +1,5 @@
 using ShiftSync.Domain.Enums;
-using systems;
+using System;
 
 namespace ShiftSync.Domain.Entities
 {
@@ -13,7 +13,7 @@ namespace ShiftSync.Domain.Entities
                 throw new ArgumentException("Shift end time must be after start time.");
 
             Type = BlockType.Shift;
-            start = start;
+            Start = start;
             End = end;
 
             if (!string.IsNullOrWhiteSpace(title))
