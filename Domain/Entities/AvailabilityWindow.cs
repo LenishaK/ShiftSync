@@ -1,0 +1,16 @@
+using systems;
+
+namespace ShiftSync.Domain.Entities
+{
+    public sealed class AvailabilityWindow
+    {
+        public DayOfWeek Day { get; init; }
+        public TimeSpan StartTime { get; init; }
+        public TimeSpan EndTime { get; init; }
+
+        public bool IsValid()
+        {
+            return EndTime > StartTime; 
+        }
+    }
+}
