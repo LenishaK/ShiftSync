@@ -1,13 +1,15 @@
-﻿using ShiftSync;
-using ShiftSync.Domain;
+﻿using ShiftSync.Domain.Entities;
+using ShiftSync.Domain.Enums;
+using ShiftSync.Scheduler;
+
 
 // ---- DEMO DATA ----
 
 // Create some fixed shifts
-var shifts = new List<Shift>
+var shifts = new List<ShiftSync.Domain.Entities.Shift>
 {
-    new Shift(DateTime.Today.AddDays(1).AddHours(9), DateTime.Today.AddDays(1).AddHours(17), "Work"),
-    new Shift(DateTime.Today.AddDays(3).AddHours(12), DateTime.Today.AddDays(3).AddHours(20), "Work")
+    new ShiftSync.Domain.Entities.Shift(DateTime.Today.AddDays(1).AddHours(9), DateTime.Today.AddDays(1).AddHours(17), "Work"),
+    new ShiftSync.Domain.Entities.Shift(DateTime.Today.AddDays(3).AddHours(12), DateTime.Today.AddDays(3).AddHours(20), "Work")
 };
 
 // Create some tasks

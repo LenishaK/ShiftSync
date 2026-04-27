@@ -1,4 +1,4 @@
-namespace Shift.Sync.Domain.Enums
+namespace ShiftSync.Domain.Enums
 {
     public enum Priority
     {

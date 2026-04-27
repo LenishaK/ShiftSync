@@ -11,15 +11,15 @@ namespace ShiftSync.Domain.Entities
         public TaskBlock (TaskItem task, DateTime start, DateTime end)
         {
             if (task == null)
-                throw new ArrrggumentNUllExpection(nameof(task));
+                throw new ArgumentNullException(nameof(task));
 
             if (end <= start)
-                throw new argumentExcpection("Task block end time must be after start time.");
+                throw new ArgumentException("Task block end time must be after start time.");
 
             Type = BlockType.Task;
             Name = task.Name;
             Priority = task.Priority;
-            start = start;
+            Start = start;
             End = end; 
         }
     }
