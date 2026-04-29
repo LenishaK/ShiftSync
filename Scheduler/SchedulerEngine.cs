@@ -1,4 +1,5 @@
 ﻿using ShiftSync.Domain.Entities;
+using ShiftSync.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,6 +26,30 @@ namespace ShiftSync.Scheduler
             // Start with fixed shifts
             var schedule = new List<TimeBlock>();
             schedule.AddRange(shifts);
+
+            // Get all relevant dates - from first shift to last deadline
+            var firstDate = shifts.Any() ? shifts.Min(s => s.Start.Date) : DateTime.Today;
+            var lastDate = tasks.Any() && tasks.Any(t => t.Deadline.HasValue)
+                ? tasks.Where(t => t.Deadline.HasValue).Max(t => t.Deadline!.Value.Date)
+                : firstDate.AddDays(7);
+
+            var dates = Enumerable.Range(0, (lastDate - firstDate).Days + 1)
+                .Select(i => firstDate.AddDays(i))
+                .ToList();
+
+            // Build availability for all dates
+            var fullAvailability = dates.Select(d => new AvailabilityWindow
+            {
+                Day = d.DayOfWeek,
+                StartTime = TimeSpan.FromHours(6),
+                EndTime = TimeSpan.FromHours(23)
+            }).ToList();
+
+            // Add sleep blocks
+            var sleepBlocks = GenerateSleepBlocks(shifts, dates,
+                limits.MinSleepHours, limits.WindDownMins);
+            schedule.AddRange(sleepBlocks);
+
             schedule = schedule.OrderBy(b => b.Start).ToList();
 
             // Sort tasks by priority first, then earliest deadline
@@ -35,7 +60,7 @@ namespace ShiftSync.Scheduler
 
             foreach (var task in sortedTasks)
             {
-                var freeSlots = FreeSlotBuilder.ComputeFreeSlots(availability, schedule);
+                var freeSlots = FreeSlotBuilder.ComputeFreeSlots(fullAvailability, schedule);
 
                 var candidateStarts = freeSlots
                     .Where(slot => (slot.End - slot.Start) >= task.Duration)
@@ -50,7 +75,7 @@ namespace ShiftSync.Scheduler
                     var end = start + task.Duration;
                     var block = new TaskBlock(task, start, end);
 
-                    if (ConstraintChecker.ViolatesAny(block, schedule, availability, limits, task))
+                    if (ConstraintChecker.ViolatesAny(block, schedule, fullAvailability, limits, task))
                         continue;
 
                     var tempSchedule = schedule
@@ -94,6 +119,36 @@ namespace ShiftSync.Scheduler
                 yield return current;
                 current = current.AddMinutes(stepMinutes);
             }
+        }
+
+        private static List<TimeBlock> GenerateSleepBlocks(
+            List<ShiftSync.Domain.Entities.Shift> shifts,
+            List<DateTime> dates,
+            int minSleepHours,
+            int windDownMins)
+        {
+            var sleepBlocks = new List<TimeBlock>();
+
+            foreach (var date in dates)
+            {
+                var dayShift = shifts.FirstOrDefault(s => s.Start.Date == date.Date);
+
+                DateTime sleepStart;
+
+                if (dayShift != null)
+                {
+                    sleepStart = dayShift.End.AddMinutes(windDownMins);
+                }
+                else
+                {
+                    sleepStart = date.Date.AddHours(23);
+                }
+
+                var sleepEnd = sleepStart.AddHours(minSleepHours);
+                sleepBlocks.Add(new SleepBlock(sleepStart, sleepEnd));
+            }
+
+            return sleepBlocks;
         }
     }
 }

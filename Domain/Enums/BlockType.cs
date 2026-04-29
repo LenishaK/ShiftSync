@@ -3,6 +3,9 @@ namespace ShiftSync.Domain.Enums
     public enum BlockType
     {
         Shift,
-        Task
+        Task,
+        Sleep,
+        Buffer
+
     }
 }
