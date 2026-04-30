@@ -33,9 +33,8 @@ Generate a weekly schedule
 Project Context
 
 This project was developed as part of a final year Development Project for BSc Computer Science with Artificial Intelligence at Sheffield Hallam University.
----
+
 ## Notes
 This is a single-user application
 Data is stored locally using SQLite
 The system focuses on realistic scheduling rather than optimisation complexity
----
