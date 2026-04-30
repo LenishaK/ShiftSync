@@ -1,4 +1,4 @@
-###ShiftSync – Scheduling System
+### ShiftSync – Scheduling System
 ## Overview
 ---
 ShiftSync is a scheduling system designed to help students who balance university work, part-time jobs and personal commitments. It automatically generates a structured weekly plan by combining shifts, tasks and user preferences.
