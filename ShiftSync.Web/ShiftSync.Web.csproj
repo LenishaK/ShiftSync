@@ -63,7 +63,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ShiftSync\ShiftSync.csproj" />
+    <ProjectReference Include="..\ShiftSync.csproj" />
   </ItemGroup>
 
   <ItemGroup>

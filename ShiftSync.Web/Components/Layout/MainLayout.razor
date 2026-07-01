@@ -4,10 +4,6 @@
 
 @if (!AppState.IsLoggedIn)
 {
-    Nav.NavigateTo("/login");
-}
-else
-{
     <div class="page">
         <div class="sidebar" style="background-color: #ffffff; border-right: 2px solid #f8b4c0;">
             <NavMenu />
@@ -32,6 +28,14 @@ else
 </div>
 
 @code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !AppState.IsLoggedIn)
+        {
+            Nav.NavigateTo("/login");
+        }
+    }
+
     private void Logout()
     {
         AppState.Logout();

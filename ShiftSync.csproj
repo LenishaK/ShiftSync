@@ -11,4 +11,11 @@
 		<Folder Include="Data\" />
 	</ItemGroup>
 
+<ItemGroup>
+    <Compile Remove="ShiftSync.Web\**" />
+    <Compile Remove="ShiftSync.Web\**\*.cs" />
+    <EmbeddedResource Remove="ShiftSync.Web\**" />
+    <None Remove="ShiftSync.Web\**" />
+  </ItemGroup>
+
 </Project>
