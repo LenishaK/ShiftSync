@@ -1,0 +1,205 @@
+﻿@rendermode InteractiveServer
+@page "/"
+@inject ShiftSync.Web.Services.AppState AppState
+@inject DataService DataService
+@implements IDisposable
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Dashboard</h3>
+    <div class="d-flex gap-2">
+        <button class="btn btn-secondary" @onclick="PrevWeek">← Prev</button>
+        <span class="fw-bold mt-1">Week of @weekStart.ToShortDateString()</span>
+        <button class="btn btn-secondary" @onclick="NextWeek">Next →</button>
+        <button class="btn btn-primary" @onclick="GeneratePlan">Generate</button>
+        <button class="btn btn-outline-primary" @onclick="RegeneratePlan">Regenerate</button>
+    </div>
+</div>
+
+@if (AppState.Warnings.Count > 0)
+{
+    <div class="alert alert-warning">
+        <strong>Warnings:</strong>
+        @foreach (var w in AppState.Warnings)
+        {
+            <div>⚠️ @w</div>
+        }
+    </div>
+}
+
+<div class="table-responsive">
+    <table class="table table-bordered text-center" style="table-layout:fixed;">
+        <thead>
+            <tr>
+                <th style="width:60px;">Time</th>
+                @foreach (var day in weekDays)
+                {
+                    <th>@day.ToString("ddd dd/MM")</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @for (int hour = 6; hour <= 24; hour++)
+            {
+                <tr style="height:40px;">
+                    <td class="text-muted" style="font-size:0.75rem;">
+                        @(hour == 24 ? "00:00" : $"{hour:00}:00")
+                    </td>
+                    @foreach (var day in weekDays)
+                    {
+                        var currentHour = hour;
+                        var block = GetBlockForDayAndHour(day, currentHour);
+                        @if (block != null)
+                        {
+                            <td class="@GetBlockClass(block) p-1" style="font-size:0.75rem;">
+                                <strong>@GetBlockLabel(block)</strong>
+                            </td>
+                        }
+                        else
+                        {
+                            <td></td>
+                        }
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (AppState.Shifts.Count == 0 && AppState.Tasks.Count == 0)
+{
+    <p class="text-muted text-center mt-4">
+        Add shifts and tasks then click Generate to create your plan!
+    </p>
+}
+
+@code {
+    private DateTime weekStart = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + 1);
+    private List<DateTime> weekDays = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SetWeekDays();
+
+        AppState.Shifts = await DataService.LoadShiftsAsync();
+        AppState.Tasks = await DataService.LoadTasksAsync();
+
+        var prefs = await DataService.LoadPreferencesAsync();
+        if (prefs != null)
+        {
+            AppState.MinSleepHours = prefs.MinSleepHours;
+            AppState.WindDownMins = prefs.WindDownMins;
+            AppState.Preferences = new UserPreference
+            {
+                KeepEveningsFree = true,
+                KeepMorningsFree = false,
+                PreferredWindows = new List<AvailabilityWindow>
+                {
+                    new AvailabilityWindow
+                    {
+                        Day = DayOfWeek.Monday,
+                        StartTime = TimeOnly.Parse(prefs.StudyStart ?? "08:00").ToTimeSpan(),
+                        EndTime = TimeOnly.Parse(prefs.StudyEnd ?? "23:00").ToTimeSpan()
+                    }
+                }
+            };
+        }
+
+        AppState.OnChange += () => InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= () => InvokeAsync(StateHasChanged);
+    }
+
+    private void SetWeekDays()
+    {
+        weekDays = Enumerable.Range(0, 7)
+            .Select(i => weekStart.AddDays(i))
+            .ToList();
+    }
+
+    private void PrevWeek()
+    {
+        weekStart = weekStart.AddDays(-7);
+        SetWeekDays();
+    }
+
+    private void NextWeek()
+    {
+        weekStart = weekStart.AddDays(7);
+        SetWeekDays();
+    }
+
+    private void GeneratePlan()
+    {
+        var allDates = AppState.Shifts
+            .Select(s => s.Start.Date)
+            .Concat(weekDays)
+            .Distinct()
+            .OrderBy(d => d)
+            .ToList();
+
+        var availability = allDates.Select(d => new AvailabilityWindow
+        {
+            Day = d.DayOfWeek,
+            StartTime = TimeSpan.FromHours(6),
+            EndTime = TimeSpan.FromHours(23)
+        }).ToList();
+
+        var limits = new ScheduleLimits
+        {
+            MaxHoursPerDay = 8,
+            MaxHoursPerWeek = 40,
+            MinRestHoursBetweenShifts = 11,
+            MinSleepHours = AppState.MinSleepHours > 0 ? AppState.MinSleepHours : 8,
+            WindDownMins = AppState.WindDownMins > 0 ? AppState.WindDownMins : 30
+        };
+
+        var engine = new SchedulerEngine();
+        var result = engine.GenerateSchedule(
+            AppState.Shifts,
+            AppState.Tasks,
+            availability,
+            AppState.Preferences,
+            limits);
+
+        AppState.GeneratedSchedule = result.Blocks;
+        AppState.Warnings = result.Warnings;
+        AppState.NotifyStateChanged();
+    }
+
+    private void RegeneratePlan()
+    {
+        AppState.GeneratedSchedule.Clear();
+        AppState.Warnings.Clear();
+        GeneratePlan();
+    }
+
+    private TimeBlock? GetBlockForDayAndHour(DateTime day, int hour)
+    {
+        var targetTime = day.Date.AddHours(hour);
+        return AppState.GeneratedSchedule
+            .FirstOrDefault(b => b.Start <= targetTime
+                && b.End > targetTime);
+    }
+
+    private string GetBlockClass(TimeBlock block)
+    {
+        return block.Type switch
+        {
+            BlockType.Shift => "bg-secondary text-white",
+            BlockType.Task => "bg-primary text-white",
+            BlockType.Sleep => "bg-purple text-white",
+            _ => "bg-light"
+        };
+    }
+
+    private string GetBlockLabel(TimeBlock block)
+    {
+        if (block is Shift s) return s.Title;
+        if (block is TaskBlock t) return t.Name;
+        if (block is SleepBlock) return "😴 Sleep";
+        return block.Type.ToString();
+    }
+}

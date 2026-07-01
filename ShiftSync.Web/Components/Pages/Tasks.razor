@@ -1,0 +1,119 @@
+﻿@rendermode InteractiveServer
+@page "/tasks"
+@inject ShiftSync.Web.Services.AppState AppState
+@inject DataService DataService
+
+<div class="page-header">
+    <h3>Tasks</h3>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h5>Task Form</h5>
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input type="text" class="form-control" @bind="newTitle" />
+            </div> 
+            <div class="mb-3">
+                <label class="form-label">Module (optional)</label>
+                <input type="text" class="form-control" @bind="newModule" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Deadline</label>
+                <input type="date" class="form-control" @bind="newDeadline" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Estimated Hours</label>
+                <input type="number" class="form-control" @bind="newHours" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Priority</label>
+                <select class="form-control" @bind="newPriority">
+                    <option value="1">Low</option>
+                    <option value="2">Medium</option>
+                    <option value="3">High</option>
+                </select>
+            </div>
+            <button class="btn btn-primary w-100" @onclick="SaveTask">Save</button>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h5>Current Tasks</h5>
+            @if (AppState.Tasks.Count == 0)
+            {
+                <p class="text-muted">No tasks added yet.</p>
+            }
+            else
+            {
+                @foreach (var task in AppState.Tasks)
+                {
+                    <div class="mb-2 p-2 border rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>@task.Name</strong><br />
+                                <small>Deadline: @task.Deadline?.ToShortDateString()</small><br />
+                                <small>@task.Duration.TotalHours hrs</small>
+                                <span class="badge bg-primary ms-2">@task.Priority</span>
+                            </div>
+                            <button class="btn btn-danger btn-sm"
+                                    @onclick="() => DeleteTask(task)">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string newTitle = "";
+    private string newModule = "";
+    private DateTime newDeadline = DateTime.Today.AddDays(7);
+    private double newHours = 1;
+    private int newPriority = 2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.Tasks = await DataService.LoadTasksAsync();
+        AppState.OnChange += () => InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveTask()
+    {
+        if (!string.IsNullOrWhiteSpace(newTitle))
+        {
+            var task = new TaskItem
+            {
+                Name = newTitle,
+                Duration = TimeSpan.FromHours(newHours),
+                Deadline = newDeadline,
+                Priority = (Priority)newPriority
+            };
+            AppState.Tasks.Add(task);
+            await DataService.SaveTaskAsync(task);
+            AppState.NotifyStateChanged();
+            newTitle = "";
+            newModule = "";
+            newDeadline = DateTime.Today.AddDays(7);
+            newHours = 1;
+            newPriority = 2;
+        }
+    }
+
+    private async Task DeleteTask(TaskItem task)
+    {
+        AppState.Tasks.Remove(task);
+        await DataService.DeleteTaskAsync(task);
+        AppState.NotifyStateChanged();
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= () => InvokeAsync(StateHasChanged);
+    }
+}

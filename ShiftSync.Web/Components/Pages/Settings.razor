@@ -1,0 +1,129 @@
+﻿@rendermode InteractiveServer
+@page "/settings"
+@inject ShiftSync.Web.Services.AppState AppState
+@inject DataService DataService
+@implements IDisposable
+
+<div class="page-header">
+    <h3>Settings</h3>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card p-4 mb-4">
+            <h5>Sleep Settings</h5>
+            <div class="mb-3">
+                <label class="form-label">Minimum hours per night</label>
+                <input type="number" class="form-control" @bind="minSleepHours" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Wind down time after work (minutes)</label>
+                <input type="number" class="form-control" @bind="windDownMins" />
+            </div>
+        </div>
+
+        <div class="card p-4">
+            <h5>Study Preferences</h5>
+            <div class="mb-3">
+                <label class="form-label">Preferred study start time</label>
+                <input type="time" class="form-control" @bind="studyStart" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Preferred study end time</label>
+                <input type="time" class="form-control" @bind="studyEnd" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Max study hours per day</label>
+                <input type="number" class="form-control" @bind="maxStudyHours" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Minimum study block (minutes)</label>
+                <input type="number" class="form-control" @bind="minBlockMins" />
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary w-100" @onclick="SaveSettings">Save</button>
+                <button class="btn btn-secondary w-100" @onclick="ResetSettings">Reset</button>
+            </div>
+            @if (saved)
+            {
+                <p class="text-success mt-2">✅ Settings saved!</p>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private int minSleepHours = 8;
+    private int windDownMins = 30;
+    private TimeOnly studyStart = new TimeOnly(10, 0);
+    private TimeOnly studyEnd = new TimeOnly(20, 0);
+    private int maxStudyHours = 3;
+    private int minBlockMins = 30;
+    private bool saved = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var prefs = await DataService.LoadPreferencesAsync();
+        if (prefs != null)
+        {
+            minSleepHours = prefs.MinSleepHours;
+            windDownMins = prefs.WindDownMins;
+            maxStudyHours = prefs.MaxStudyHours;
+            minBlockMins = prefs.MinBlockMins;
+            studyStart = TimeOnly.Parse(prefs.StudyStart);
+            studyEnd = TimeOnly.Parse(prefs.StudyEnd);
+        }
+        AppState.OnChange += () => InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveSettings()
+    {
+        AppState.MinSleepHours = minSleepHours;
+        AppState.WindDownMins = windDownMins;
+
+        var prefs = new PreferenceData
+        {
+            MinSleepHours = minSleepHours,
+            WindDownMins = windDownMins,
+            StudyStart = studyStart.ToString("HH:mm"),
+            StudyEnd = studyEnd.ToString("HH:mm"),
+            MaxStudyHours = maxStudyHours,
+            MinBlockMins = minBlockMins
+        };
+        await DataService.SavePreferencesAsync(prefs);
+
+        AppState.Preferences = new ShiftSync.Domain.Entities.UserPreference
+        {
+            KeepEveningsFree = studyEnd.Hour < 20,
+            KeepMorningsFree = studyStart.Hour > 9,
+            PreferredWindows = new List<ShiftSync.Domain.Entities.AvailabilityWindow>
+            {
+                new ShiftSync.Domain.Entities.AvailabilityWindow
+                {
+                    Day = DayOfWeek.Monday,
+                    StartTime = studyStart.ToTimeSpan(),
+                    EndTime = studyEnd.ToTimeSpan()
+                }
+            }
+        };
+        AppState.NotifyStateChanged();
+        saved = true;
+    }
+
+    private async Task ResetSettings()
+    {
+        minSleepHours = 8;
+        windDownMins = 30;
+        studyStart = new TimeOnly(10, 0);
+        studyEnd = new TimeOnly(20, 0);
+        maxStudyHours = 3;
+        minBlockMins = 30;
+        saved = false;
+        await SaveSettings();
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= () => InvokeAsync(StateHasChanged);
+    }
+}

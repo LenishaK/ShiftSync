@@ -1,0 +1,40 @@
+﻿@inherits LayoutComponentBase
+@inject AppState AppState
+@inject NavigationManager Nav
+
+@if (!AppState.IsLoggedIn)
+{
+    Nav.NavigateTo("/login");
+}
+else
+{
+    <div class="page">
+        <div class="sidebar" style="background-color: #ffffff; border-right: 2px solid #f8b4c0;">
+            <NavMenu />
+        </div>
+        <main>
+            <div class="top-row px-4" style="background-color: #f8b4c0;">
+                <span class="me-auto ms-3">👋 @AppState.CurrentUser?.Username</span>
+                <button class="btn btn-sm btn-outline-dark me-3" @onclick="Logout">Logout</button>
+                <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            </div>
+            <article class="content px-4">
+                @Body
+            </article>
+        </main>
+    </div>
+}
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">✕</a>
+</div>
+
+@code {
+    private void Logout()
+    {
+        AppState.Logout();
+        Nav.NavigateTo("/login");
+    }
+}

@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.37012.4
+# Visual Studio Version 18
+VisualStudioVersion = 18.7.11925.98 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShiftSync", "ShiftSync.csproj", "{37D92D32-891E-4B41-B90E-3FB6C52D3051}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShiftSync.Web", "..\ShiftSync.Web\ShiftSync.Web.csproj", "{618E6145-BAAD-4A19-8048-5BCC86846022}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShiftSync.Web", "ShiftSync.Web\ShiftSync.Web.csproj", "{C14DD10E-1540-500A-531C-8B0E92FB98ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{37D92D32-891E-4B41-B90E-3FB6C52D3051}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{37D92D32-891E-4B41-B90E-3FB6C52D3051}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{37D92D32-891E-4B41-B90E-3FB6C52D3051}.Release|Any CPU.Build.0 = Release|Any CPU
-		{618E6145-BAAD-4A19-8048-5BCC86846022}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{618E6145-BAAD-4A19-8048-5BCC86846022}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{618E6145-BAAD-4A19-8048-5BCC86846022}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{618E6145-BAAD-4A19-8048-5BCC86846022}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C14DD10E-1540-500A-531C-8B0E92FB98ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C14DD10E-1540-500A-531C-8B0E92FB98ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C14DD10E-1540-500A-531C-8B0E92FB98ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C14DD10E-1540-500A-531C-8B0E92FB98ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,118 @@
+﻿@rendermode InteractiveServer
+@page "/shifts"
+@implements IDisposable 
+@inject DataService DataService
+@inject ShiftSync.Web.Services.AppState AppState
+
+<div class="page-header">
+    <h3>Shifts</h3>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h5>Shift Form</h5>
+            <div class="mb-3">
+                <label class="form-label">Date</label>
+                <input type="date" class="form-control" @bind="newDate" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Start Time</label>
+                <input type="time" class="form-control" @bind="newStart" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">End Time</label>
+                <input type="time" class="form-control" @bind="newEnd" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Commute (minutes)</label>
+                <input type="number" class="form-control" @bind="newCommute" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Late Shift?</label>
+                <input type="checkbox" class="form-check-input ms-2" @bind="isLateShift" />
+            </div>
+            <button class="btn btn-save w-100" @onclick="SaveShift">Save</button>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h5>Saved Shifts</h5>
+            @if (AppState.Shifts.Count == 0)
+            {
+                <p class="text-muted">No shifts added yet.</p>
+            }
+            else
+            {
+                @foreach (var shift in AppState.Shifts)
+                {
+                    <div class="shift-item mb-2 p-2 border rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>@shift.Start.ToShortDateString()</strong><br />
+                                @shift.Start.ToShortTimeString() – @shift.End.ToShortTimeString()
+                                @if (shift.CommuteMins > 0)
+                                {
+                                    <span class="badge bg-secondary ms-2">@shift.CommuteMins min commute</span>
+                                }
+                                @if (shift.IsLateShift)
+                                {
+                                    <span class="badge bg-warning ms-2">Late Shift</span>
+                                }
+                            </div>
+                            <button class="btn btn-danger btn-sm"
+                                    @onclick="() => DeleteShift(shift)">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private DateTime newDate = DateTime.Today;
+    private TimeOnly newStart = new TimeOnly(9, 0);
+    private TimeOnly newEnd = new TimeOnly(17, 0);
+    private int newCommute = 0;
+    private bool isLateShift = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.Shifts = await DataService.LoadShiftsAsync();
+        AppState.OnChange += () => InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveShift()
+    {
+        var start = newDate.Date + newStart.ToTimeSpan();
+        var end = newDate.Date + newEnd.ToTimeSpan();
+        if (end > start)
+        {
+            var shift = new Shift(start, end, "Work", newCommute, isLateShift);
+            AppState.Shifts.Add(shift);
+            await DataService.SaveShiftAsync(shift);
+            AppState.NotifyStateChanged();
+            newDate = DateTime.Today;
+            newStart = new TimeOnly(9, 0);
+            newEnd = new TimeOnly(17, 0);
+            newCommute = 0;
+            isLateShift = false;
+        }
+    }
+
+    private async Task DeleteShift(Shift shift)
+    {
+        AppState.Shifts.Remove(shift);
+        await DataService.DeleteShiftAsync(shift);
+        AppState.NotifyStateChanged();
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= () => InvokeAsync(StateHasChanged);
+    }
+}
