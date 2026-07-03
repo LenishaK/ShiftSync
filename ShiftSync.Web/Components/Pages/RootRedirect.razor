@@ -1,0 +1,17 @@
+﻿@page "/"
+@inject NavigationManager Nav
+@inject ShiftSync.Web.Services.AppState AppState
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (AppState.IsLoggedIn)
+        {
+            Nav.NavigateTo("/home", forceLoad: true);
+        }
+        else
+        {
+            Nav.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}

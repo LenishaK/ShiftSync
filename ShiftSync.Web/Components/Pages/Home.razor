@@ -1,11 +1,15 @@
-﻿@rendermode InteractiveServer
-@page "/"
+﻿@page "/home"
 @inject ShiftSync.Web.Services.AppState AppState
 @inject DataService DataService
 @implements IDisposable
 
+@if (!string.IsNullOrEmpty(loadError))
+{
+    <div class="alert alert-danger" style="white-space: pre-wrap;">@loadError</div>
+}
+
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>Dashboard</h3>
+    <h3>Home</h3>
     <div class="d-flex gap-2">
         <button class="btn btn-secondary" @onclick="PrevWeek">← Prev</button>
         <span class="fw-bold mt-1">Week of @weekStart.ToShortDateString()</span>
@@ -73,38 +77,46 @@
 }
 
 @code {
+    private string? loadError = null;
     private DateTime weekStart = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + 1);
     private List<DateTime> weekDays = new();
 
     protected override async Task OnInitializedAsync()
     {
-        SetWeekDays();
-
-        AppState.Shifts = await DataService.LoadShiftsAsync();
-        AppState.Tasks = await DataService.LoadTasksAsync();
-
-        var prefs = await DataService.LoadPreferencesAsync();
-        if (prefs != null)
+        try
         {
-            AppState.MinSleepHours = prefs.MinSleepHours;
-            AppState.WindDownMins = prefs.WindDownMins;
-            AppState.Preferences = new UserPreference
-            {
-                KeepEveningsFree = true,
-                KeepMorningsFree = false,
-                PreferredWindows = new List<AvailabilityWindow>
-                {
-                    new AvailabilityWindow
-                    {
-                        Day = DayOfWeek.Monday,
-                        StartTime = TimeOnly.Parse(prefs.StudyStart ?? "08:00").ToTimeSpan(),
-                        EndTime = TimeOnly.Parse(prefs.StudyEnd ?? "23:00").ToTimeSpan()
-                    }
-                }
-            };
-        }
+            SetWeekDays();
 
-        AppState.OnChange += () => InvokeAsync(StateHasChanged);
+            AppState.Shifts = await DataService.LoadShiftsAsync();
+            AppState.Tasks = await DataService.LoadTasksAsync();
+
+            var prefs = await DataService.LoadPreferencesAsync();
+            if (prefs != null)
+            {
+                AppState.MinSleepHours = prefs.MinSleepHours;
+                AppState.WindDownMins = prefs.WindDownMins;
+                AppState.Preferences = new UserPreference
+                {
+                    KeepEveningsFree = true,
+                    KeepMorningsFree = false,
+                    PreferredWindows = new List<AvailabilityWindow>
+                    {
+                        new AvailabilityWindow
+                        {
+                            Day = DayOfWeek.Monday,
+                            StartTime = TimeOnly.Parse(prefs.StudyStart ?? "08:00").ToTimeSpan(),
+                            EndTime = TimeOnly.Parse(prefs.StudyEnd ?? "23:00").ToTimeSpan()
+                        }
+                    }
+                };
+            }
+
+            AppState.OnChange += () => InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            loadError = ex.Message + "\n\n" + ex.StackTrace;
+        }
     }
 
     public void Dispose()
@@ -133,40 +145,47 @@
 
     private void GeneratePlan()
     {
-        var allDates = AppState.Shifts
-            .Select(s => s.Start.Date)
-            .Concat(weekDays)
-            .Distinct()
-            .OrderBy(d => d)
-            .ToList();
-
-        var availability = allDates.Select(d => new AvailabilityWindow
+        try
         {
-            Day = d.DayOfWeek,
-            StartTime = TimeSpan.FromHours(6),
-            EndTime = TimeSpan.FromHours(23)
-        }).ToList();
+            var allDates = AppState.Shifts
+                .Select(s => s.Start.Date)
+                .Concat(weekDays)
+                .Distinct()
+                .OrderBy(d => d)
+                .ToList();
 
-        var limits = new ScheduleLimits
+            var availability = allDates.Select(d => new AvailabilityWindow
+            {
+                Day = d.DayOfWeek,
+                StartTime = TimeSpan.FromHours(6),
+                EndTime = TimeSpan.FromHours(23)
+            }).ToList();
+
+            var limits = new ScheduleLimits
+            {
+                MaxHoursPerDay = 8,
+                MaxHoursPerWeek = 40,
+                MinRestHoursBetweenShifts = 11,
+                MinSleepHours = AppState.MinSleepHours > 0 ? AppState.MinSleepHours : 8,
+                WindDownMins = AppState.WindDownMins > 0 ? AppState.WindDownMins : 30
+            };
+
+            var engine = new SchedulerEngine();
+            var result = engine.GenerateSchedule(
+                AppState.Shifts,
+                AppState.Tasks,
+                availability,
+                AppState.Preferences ?? new UserPreference(),
+                limits);
+
+            AppState.GeneratedSchedule = result.Blocks;
+            AppState.Warnings = result.Warnings;
+            AppState.NotifyStateChanged();
+        }
+        catch (Exception ex)
         {
-            MaxHoursPerDay = 8,
-            MaxHoursPerWeek = 40,
-            MinRestHoursBetweenShifts = 11,
-            MinSleepHours = AppState.MinSleepHours > 0 ? AppState.MinSleepHours : 8,
-            WindDownMins = AppState.WindDownMins > 0 ? AppState.WindDownMins : 30
-        };
-
-        var engine = new SchedulerEngine();
-        var result = engine.GenerateSchedule(
-            AppState.Shifts,
-            AppState.Tasks,
-            availability,
-            AppState.Preferences,
-            limits);
-
-        AppState.GeneratedSchedule = result.Blocks;
-        AppState.Warnings = result.Warnings;
-        AppState.NotifyStateChanged();
+            loadError = ex.Message + "\n\n" + ex.StackTrace;
+        }
     }
 
     private void RegeneratePlan()

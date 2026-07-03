@@ -2,7 +2,7 @@
 @inject AppState AppState
 @inject NavigationManager Nav
 
-@if (!AppState.IsLoggedIn)
+@if (AppState.IsLoggedIn)
 {
     <div class="page">
         <div class="sidebar" style="background-color: #ffffff; border-right: 2px solid #f8b4c0;">
@@ -39,6 +39,6 @@
     private void Logout()
     {
         AppState.Logout();
-        Nav.NavigateTo("/login");
+        Nav.NavigateTo("/login", forceLoad: true);
     }
 }

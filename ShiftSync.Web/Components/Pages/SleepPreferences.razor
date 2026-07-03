@@ -1,0 +1,92 @@
+﻿@rendermode InteractiveServer
+@page "/settings/sleep"
+@inject ShiftSync.Web.Services.AppState AppState
+@inject DataService DataService
+@implements IDisposable
+
+<div class="page-header">
+    <h3>Sleep Preferences</h3>
+    <p class="text-muted">Protect your sleep and recovery time around your shifts.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <div class="mb-3">
+                <label class="form-label">Minimum hours per night</label>
+                <input type="number" class="form-control" @bind="minSleepHours" />
+                <small class="text-muted">The least amount of sleep you want each night. Your schedule will try to protect at least this much.</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Wind down time after work (minutes)</label>
+                <input type="number" class="form-control" @bind="windDownMins" />
+                <small class="text-muted">Buffer time after a shift ends before sleep starts, so you're not going straight from work to bed.</small>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary w-100" @onclick="SaveSettings">Save</button>
+                <button class="btn btn-secondary w-100" @onclick="ResetSettings">Reset</button>
+            </div>
+            @if (saved)
+            {
+                <p class="text-success mt-2">✅ Settings saved!</p>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private int minSleepHours = 8;
+    private int windDownMins = 30;
+    private TimeOnly studyStart = new TimeOnly(10, 0);
+    private TimeOnly studyEnd = new TimeOnly(20, 0);
+    private int maxStudyHours = 3;
+    private int minBlockMins = 30;
+    private bool saved = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var prefs = await DataService.LoadPreferencesAsync();
+        if (prefs != null)
+        {
+            minSleepHours = prefs.MinSleepHours;
+            windDownMins = prefs.WindDownMins;
+            maxStudyHours = prefs.MaxStudyHours;
+            minBlockMins = prefs.MinBlockMins;
+            studyStart = TimeOnly.Parse(prefs.StudyStart);
+            studyEnd = TimeOnly.Parse(prefs.StudyEnd);
+        }
+        AppState.OnChange += () => InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveSettings()
+    {
+        AppState.MinSleepHours = minSleepHours;
+        AppState.WindDownMins = windDownMins;
+
+        var prefs = new PreferenceData
+        {
+            MinSleepHours = minSleepHours,
+            WindDownMins = windDownMins,
+            StudyStart = studyStart.ToString("HH:mm"),
+            StudyEnd = studyEnd.ToString("HH:mm"),
+            MaxStudyHours = maxStudyHours,
+            MinBlockMins = minBlockMins
+        };
+        await DataService.SavePreferencesAsync(prefs);
+        AppState.NotifyStateChanged();
+        saved = true;
+    }
+
+    private async Task ResetSettings()
+    {
+        minSleepHours = 8;
+        windDownMins = 30;
+        saved = false;
+        await SaveSettings();
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= () => InvokeAsync(StateHasChanged);
+    }
+}

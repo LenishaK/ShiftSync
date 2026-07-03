@@ -135,13 +135,16 @@ namespace ShiftSync.Scheduler
 
                 DateTime sleepStart;
 
+                var earliestBedtime = date.Date.AddHours(23); // never sleep before 10pm
+
                 if (dayShift != null)
                 {
-                    sleepStart = dayShift.End.AddMinutes(windDownMins);
+                    var afterWindDown = dayShift.End.AddMinutes(windDownMins);
+                    sleepStart = afterWindDown > earliestBedtime ? afterWindDown : earliestBedtime;
                 }
                 else
                 {
-                    sleepStart = date.Date.AddHours(23);
+                    sleepStart = earliestBedtime;
                 }
 
                 var sleepEnd = sleepStart.AddHours(minSleepHours);

@@ -1,10 +1,15 @@
 ﻿@page "/login"
+@layout Layout.EmptyLayout
 @inject AuthService AuthService
 @inject AppState AppState
 @inject NavigationManager Nav
 
 <div class="d-flex justify-content-center align-items-center" style="min-height:100vh;">
     <div class="card p-4" style="width:400px;">
+        <p class="text-center text-muted mb-4" style="font-size: 0.9rem;">
+            ShiftSync is built for university students juggling assignments and a job.
+            It helps you navigate between the two while optimising your time and protecting your sleep.
+        </p>
         <h3 class="text-center mb-4">ShiftSync</h3>
 
         @if (showRegister)
@@ -64,7 +69,7 @@
         if (user != null)
         {
             AppState.CurrentUser = user;
-            Nav.NavigateTo("/");
+            Nav.NavigateTo("/home", forceLoad: true);
         }
         else
         {
