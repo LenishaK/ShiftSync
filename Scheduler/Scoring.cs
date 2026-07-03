@@ -13,6 +13,7 @@ namespace ShiftSync.Scheduler
         private const int W_PRIORITY_EARLY = 3;
         private const int W_FRAGMENTATION = 2;
         private const int W_OVERTIME_DAY = 4;
+        private const int W_FREE_DAY = 3;
 
         public static int Score(List<TimeBlock> schedule, UserPreference prefs, ScheduleLimits limits)
         {
@@ -23,8 +24,22 @@ namespace ShiftSync.Scheduler
             score += W_PRIORITY_EARLY * PriorityEarlierScore(schedule);
             score -= W_FRAGMENTATION * FragmentationPenalty(schedule);
             score -= W_OVERTIME_DAY * OvertimeDayPenalty(schedule, limits.MaxHoursPerDay);
+            score += W_FREE_DAY * FreeDayPreferenceScore(schedule);
 
             return score;
+        }
+        private static int FreeDayPreferenceScore(List<TimeBlock> schedule)
+        {
+            int points = 0;
+            var shiftDays = schedule.OfType<Shift>().Select(s => s.Start.Date).ToHashSet();
+
+            foreach (var block in schedule.OfType<TaskBlock>())
+            {
+                if (!shiftDays.Contains(block.Start.Date))
+                    points += 2;
+            }
+
+            return points;
         }
 
         private static int PreferredTimesScore(List<TimeBlock> schedule, UserPreference prefs)

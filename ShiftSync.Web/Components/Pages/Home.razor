@@ -95,6 +95,8 @@
             {
                 AppState.MinSleepHours = prefs.MinSleepHours;
                 AppState.WindDownMins = prefs.WindDownMins;
+                AppState.MaxStudyHours = prefs.MaxStudyHours;
+                AppState.MinBlockMins = prefs.MinBlockMins;
                 AppState.Preferences = new UserPreference
                 {
                     KeepEveningsFree = true,
@@ -163,7 +165,7 @@
 
             var limits = new ScheduleLimits
             {
-                MaxHoursPerDay = 8,
+                MaxHoursPerDay = AppState.MaxStudyHours > 0 ? AppState.MaxStudyHours : 3,
                 MaxHoursPerWeek = 40,
                 MinRestHoursBetweenShifts = 11,
                 MinSleepHours = AppState.MinSleepHours > 0 ? AppState.MinSleepHours : 8,

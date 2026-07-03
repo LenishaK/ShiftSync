@@ -14,6 +14,8 @@ namespace ShiftSync.Web.Services
         public List<string> Warnings { get; set; } = new();
         public int MinSleepHours { get; set; } = 8;
         public int WindDownMins { get; set; } = 30;
+        public int MaxStudyHours { get; set; } = 3;
+        public int MinBlockMins { get; set; } = 30;
         public UserPreference? Preferences { get; set; }
 
         public event Action? OnChange;
